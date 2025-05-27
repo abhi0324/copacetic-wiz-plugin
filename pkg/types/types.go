@@ -31,5 +31,5 @@ type OS struct {
 
 // Config represents configuration information
 type Config struct {
-	Arch string `json:"arch"`
+	Architecture string `json:"architecture"`
 }

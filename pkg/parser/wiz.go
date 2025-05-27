@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/project-copacetic/wiz-scanner-plugin/pkg/types"
+	"github.com/abhi0324/copacetic-wiz-plugin/pkg/types"
 )
 
 // WizVulnerability represents a vulnerability in Wiz scan report
@@ -34,87 +34,56 @@ type WizScanReport struct {
 	Architecture string `json:"architecture"`
 }
 
-// WizParser implements the parser for Wiz scan reports
-type WizParser struct {
-	severityThreshold string
+// WizParser implements the parser interface for Wiz scan reports
+type WizParser struct{}
+
+// NewWizParser creates a new WizParser instance
+func NewWizParser() *WizParser {
+	return &WizParser{}
 }
 
-// ParserOption defines options for configuring the WizParser
-type ParserOption func(*WizParser)
-
-// WithSeverityThreshold sets the minimum severity level for vulnerabilities
-func WithSeverityThreshold(severity string) ParserOption {
-	return func(p *WizParser) {
-		p.severityThreshold = severity
-	}
-}
-
-// NewWizParser creates a new instance of WizParser with optional configuration
-func NewWizParser(opts ...ParserOption) *WizParser {
-	parser := &WizParser{
-		severityThreshold: "LOW", // Default to include all severities
-	}
-	for _, opt := range opts {
-		opt(parser)
-	}
-	return parser
-}
-
-// severityToWeight converts severity string to numeric weight for comparison
-func severityToWeight(severity string) int {
-	switch severity {
-	case "CRITICAL":
-		return 4
-	case "HIGH":
-		return 3
-	case "MEDIUM":
-		return 2
-	case "LOW":
-		return 1
-	default:
-		return 0
-	}
-}
-
-// shouldIncludeVulnerability checks if a vulnerability should be included based on severity threshold
-func (w *WizParser) shouldIncludeVulnerability(vuln WizVulnerability) bool {
-	return severityToWeight(vuln.Severity) >= severityToWeight(w.severityThreshold)
-}
-
-// Parse reads and parses a Wiz scan report file
-func (w *WizParser) Parse(file string) (*types.UpdateManifest, error) {
-	data, err := os.ReadFile(file)
+// Parse converts a Wiz scan report into Copacetic's update manifest format
+func (p *WizParser) Parse(reportPath string) (*types.UpdateManifest, error) {
+	// Read the report file
+	data, err := os.ReadFile(reportPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read report file: %w", err)
+		return nil, fmt.Errorf("error reading report file: %w", err)
 	}
 
-	var wizReport WizScanReport
-	if err := json.Unmarshal(data, &wizReport); err != nil {
-		return nil, fmt.Errorf("failed to parse Wiz report: %w", err)
+	// Parse the JSON report
+	var report WizScanReport
+	if err := json.Unmarshal(data, &report); err != nil {
+		return nil, fmt.Errorf("error parsing report JSON: %w", err)
 	}
 
+	// Validate the report
+	if report.ImageID == "" || len(report.Vulnerabilities) == 0 {
+		return nil, fmt.Errorf("invalid or incomplete Wiz report")
+	}
+
+	// Create the update manifest
 	manifest := &types.UpdateManifest{
 		Metadata: types.Metadata{
 			OS: types.OS{
-				Type:    wizReport.OS.Type,
-				Version: wizReport.OS.Version,
+				Type:    report.OS.Type,
+				Version: report.OS.Version,
 			},
 			Config: types.Config{
-				Arch: wizReport.Architecture,
+				Architecture: report.Architecture,
 			},
 		},
 		Updates: make([]types.UpdatePackage, 0),
 	}
 
-	for _, vuln := range wizReport.Vulnerabilities {
-		if vuln.FixedIn != "" && w.shouldIncludeVulnerability(vuln) {
-			manifest.Updates = append(manifest.Updates, types.UpdatePackage{
-				Name:             vuln.Package,
-				InstalledVersion: vuln.Version,
-				FixedVersion:     vuln.FixedIn,
-				VulnerabilityID:  vuln.ID,
-			})
+	// Convert vulnerabilities to update packages
+	for _, vuln := range report.Vulnerabilities {
+		update := types.UpdatePackage{
+			Name:             vuln.Package,
+			InstalledVersion: vuln.Version,
+			FixedVersion:     vuln.FixedIn,
+			VulnerabilityID:  vuln.ID,
 		}
+		manifest.Updates = append(manifest.Updates, update)
 	}
 
 	return manifest, nil
