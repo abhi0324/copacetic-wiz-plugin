@@ -1,0 +1,37 @@
+{
+    "imageId": "alpine:3.14.0",
+    "scanTime": "2024-03-20T10:00:00Z",
+    "os": {
+        "type": "alpine",
+        "version": "3.14.0"
+    },
+    "architecture": "amd64",
+    "vulnerabilities": [
+        {
+            "id": "CVE-2021-36159",
+            "package": "apk-tools",
+            "version": "2.12.5-r1",
+            "fixedIn": "2.12.6-r0",
+            "severity": "HIGH",
+            "description": "In Alpine Linux apk-tools before 2.12.6-r0, the tarball parser allows a buffer overflow and crash in parse_tar_entry.",
+            "cvss": 7.5,
+            "published": "2021-07-20T00:00:00Z",
+            "references": [
+                "https://security.alpinelinux.org/vuln/CVE-2021-36159"
+            ]
+        },
+        {
+            "id": "CVE-2021-28831",
+            "package": "busybox",
+            "version": "1.33.1-r3",
+            "fixedIn": "1.33.1-r4",
+            "severity": "MEDIUM",
+            "description": "decompress_gunzip.c in BusyBox through 1.33.1 mishandles the error bit on the huft_build result pointer, with a resultant invalid free or segmentation fault, via malformed gzip data.",
+            "cvss": 5.5,
+            "published": "2021-03-19T00:00:00Z",
+            "references": [
+                "https://security.alpinelinux.org/vuln/CVE-2021-28831"
+            ]
+        }
+    ]
+} 
